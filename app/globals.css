@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Source+Sans+3:wght@300;400;500;600&family=Source+Code+Pro:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #111110;
+  --ink-2: #3A3A36;
+  --ink-3: #6E6E68;
+  --ink-4: #A0A09A;
+  --bg: #FFFFFF;
+  --bg-2: #F8F7F4;
+  --bg-3: #F0EEE9;
+  --border: #E2DED6;
+  --border-2: #C8C4BC;
+  --accent: #1A4731;
+  --flag-red: #B83232;
+  --flag-red-bg: #FDF2F2;
+  --flag-amber: #946010;
+  --flag-amber-bg: #FDF6EC;
+  --flag-green: #1A5C38;
+  --flag-green-bg: #F2F8F4;
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans: 'Source Sans 3', system-ui, sans-serif;
+  --mono: 'Source Code Pro', monospace;
+}
+
+* { box-sizing: border-box; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
