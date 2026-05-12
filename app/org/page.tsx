@@ -2,7 +2,7 @@
 import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import SourceCitation from '@/components/ui/SourceCitation'
-import RTIDisclaimer from '@/components/ui/RTIDisclaimer'
+import RTITooltip from '@/components/ui/RTITooltip'
 
 type CadreGroup = {
   cadre: string
@@ -207,7 +207,7 @@ export default function OrgPage() {
           ))}
         </div>
 
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="Department of Personnel and Training (DOPT)"
           dept_name_ta="பணியாளர் மற்றும் பயிற்சி திணைக்களம்"
           pio_designation="Central Public Information Officer, DOPT"
@@ -337,7 +337,7 @@ export default function OrgPage() {
           ))}
         </div>
 
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="Tamil Nadu Public Service Commission (TNPSC)"
           dept_name_ta="தமிழ்நாடு அரசுப் பணியாளர் தேர்வு ஆணையம்"
           pio_designation="Public Information Officer, TNPSC"

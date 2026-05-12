@@ -1,7 +1,7 @@
 'use client'
 import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
-import RTIDisclaimer from '@/components/ui/RTIDisclaimer'
+import RTITooltip from '@/components/ui/RTITooltip'
 import SourceCitation from '@/components/ui/SourceCitation'
 import { METRICS_1947_1991, CM_ERAS } from '@/lib/performance-data'
 import type { PerformanceMetric } from '@/types'
@@ -148,7 +148,7 @@ export default function Performance1947Page() {
         <MetricChart metrics={fiscalMetrics} title="Fiscal deficit (% GSDP)" unit="%" />
 
         {/* RTI for pre-1980 fiscal */}
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="TN State Archives"
           dept_name_ta="தமிழ்நாடு மாநில ஆவணகம்"
           pio_designation="Public Information Officer, Finance Department"

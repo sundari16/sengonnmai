@@ -2,7 +2,7 @@
 import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import SourceCitation from '@/components/ui/SourceCitation'
-import RTIDisclaimer from '@/components/ui/RTIDisclaimer'
+import RTITooltip from '@/components/ui/RTITooltip'
 import type { LocalBody, MPFund, MLAFund } from '@/types'
 
 const LOCAL_BODIES_SAMPLE: LocalBody[] = [
@@ -244,7 +244,7 @@ export default function LocalGovernmentPage() {
           The full MPLADS dataset for Tamil Nadu is available at mplads.gov.in — search by state or constituency.
         </div>
 
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="District Collector's Office (for each constituency)"
           dept_name_ta="மாவட்ட ஆட்சியர் அலுவலகம்"
           pio_designation="Public Information Officer, District Collector's Office"
@@ -340,7 +340,7 @@ export default function LocalGovernmentPage() {
           ))}
         </div>
 
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="Municipal Administration & Water Supply Department"
           dept_name_ta="நகராட்சி நிர்வாகம் மற்றும் குடிநீர் வழங்கல் துறை"
           pio_designation="Public Information Officer, Municipal Administration & Water Supply Department"

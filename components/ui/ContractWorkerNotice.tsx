@@ -1,5 +1,5 @@
 import type { ContractWorkerCategory } from '@/types'
-import RTIDisclaimer from './RTIDisclaimer'
+import RTITooltip from './RTITooltip'
 
 type Props = {
   categories: ContractWorkerCategory[]
@@ -123,7 +123,7 @@ export default function ContractWorkerNotice({ categories }: Props) {
       </p>
 
       {hasUnavailable && (
-        <RTIDisclaimer
+        <RTITooltip
           dept_name_en="this department"
           dept_name_ta="இந்தத் துறை"
           pio_designation="Public Information Officer"

@@ -49,6 +49,7 @@ export default function Nav() {
             { href: '/performance/1991-present', label: '1991–now' },
             { href: '/org', label: 'Org' },
             { href: '/local-government', label: 'Local Govt' },
+            { href: '/entities', label: 'Entities' },
             { href: '/rights', label: 'Your Rights' },
             { href: '/about', label: 'About' },
           ].map(l => (

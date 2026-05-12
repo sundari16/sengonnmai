@@ -6,7 +6,7 @@ import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import SourceCitation from '@/components/ui/SourceCitation'
 import DisputeButton from '@/components/ui/DisputeButton'
-import RTIDisclaimer from '@/components/ui/RTIDisclaimer'
+import RTITooltip from '@/components/ui/RTITooltip'
 import DecisionPowers from '@/components/ui/DecisionPowers'
 import MinisterTimeline from '@/components/dept/MinisterTimeline'
 import ContractWorkerNotice from '@/components/ui/ContractWorkerNotice'
@@ -250,7 +250,7 @@ export default function DeptPage() {
             ))}
           </div>
           {services.length === 0 && (
-            <RTIDisclaimer
+            <RTITooltip
               dept_name_en={dept.name_en}
               dept_name_ta={dept.name_ta}
               pio_designation={dept.pio_designation_en ?? 'Public Information Officer'}
@@ -405,7 +405,7 @@ export default function DeptPage() {
             )}
           </div>
 
-          <RTIDisclaimer
+          <RTITooltip
             dept_name_en={dept.name_en}
             dept_name_ta={dept.name_ta}
             pio_designation={dept.pio_designation_en ?? 'Public Information Officer'}
@@ -474,7 +474,7 @@ export default function DeptPage() {
           </div>
 
           {orgLevels.some(l => l.data_quality_staffing === 'estimated' || l.data_quality_staffing === 'not_available') && (
-            <RTIDisclaimer
+            <RTITooltip
               dept_name_en={dept.name_en}
               dept_name_ta={dept.name_ta}
               pio_designation={dept.pio_designation_en ?? 'Public Information Officer'}
@@ -500,7 +500,7 @@ export default function DeptPage() {
           {contractWorkers.length > 0 ? (
             <ContractWorkerNotice categories={contractWorkers} />
           ) : (
-            <RTIDisclaimer
+            <RTITooltip
               dept_name_en={dept.name_en}
               dept_name_ta={dept.name_ta}
               pio_designation={dept.pio_designation_en ?? 'Public Information Officer'}
@@ -621,7 +621,7 @@ export default function DeptPage() {
           {ministers.length > 0 ? (
             <MinisterTimeline ministers={ministers} deptName={dept.name_en} />
           ) : (
-            <RTIDisclaimer
+            <RTITooltip
               dept_name_en={dept.name_en}
               dept_name_ta={dept.name_ta}
               pio_designation={dept.pio_designation_en ?? 'Public Information Officer'}
@@ -780,7 +780,7 @@ export default function DeptPage() {
               </p>
 
               {la.data_quality !== 'available' ? (
-                <RTIDisclaimer
+                <RTITooltip
                   dept_name_en={dept.name_en}
                   dept_name_ta={dept.name_ta}
                   pio_designation="Public Information Officer, Law Department"
@@ -802,7 +802,7 @@ export default function DeptPage() {
           ))}
 
           {legalAppointments.length === 0 && (
-            <RTIDisclaimer
+            <RTITooltip
               dept_name_en={dept.name_en}
               dept_name_ta={dept.name_ta}
               pio_designation="Public Information Officer, Law Department"
