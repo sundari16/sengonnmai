@@ -50,6 +50,8 @@ export default function Nav() {
             { href: '/org', label: 'Org' },
             { href: '/local-government', label: 'Local Govt' },
             { href: '/entities', label: 'Entities' },
+            { href: '/reservation', label: 'Reservation' },
+            { href: '/timeline', label: 'Timeline' },
             { href: '/rights', label: 'Your Rights' },
             { href: '/about', label: 'About' },
           ].map(l => (
