@@ -41,10 +41,14 @@ export default function Nav() {
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        <div style={{ display: 'flex', gap: '1.75rem', listStyle: 'none' }} className="nav-links-desktop">
+        <div style={{ display: 'flex', gap: '1.25rem', listStyle: 'none', flexWrap: 'wrap' }} className="nav-links-desktop">
           {[
             { href: '/#departments', label: 'Departments' },
             { href: '/budget', label: 'Budget' },
+            { href: '/performance/1947-1991', label: '1947–91' },
+            { href: '/performance/1991-present', label: '1991–now' },
+            { href: '/org', label: 'Org' },
+            { href: '/local-government', label: 'Local Govt' },
             { href: '/rights', label: 'Your Rights' },
             { href: '/about', label: 'About' },
           ].map(l => (
