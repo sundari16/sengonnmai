@@ -738,7 +738,7 @@ export default function DeptPage() {
             <div key={f.id}>
               <FlagCard flag={f} />
               <div style={{ marginBottom: '0.75rem' }}>
-                <DisputeButton />
+                <DisputeButton flagId={f.id} />
               </div>
             </div>
           ))}
