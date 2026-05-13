@@ -33,12 +33,12 @@ const DEPT_LOCAL_CONNECTIONS: Record<string, { role: string; body: string }[]> =
     { role: 'District role', body: 'JDHS monitors PHCs, approves medicine indent, reviews progress' },
     { role: 'Panchayat / corporation role', body: 'ANM sub-centre building, community mobilisation, VHSNC meetings' },
   ],
-  'school-education': [
+  education: [
     { role: 'State role', body: 'School Education Dept sets curriculum, approves teacher transfers, releases MDM funds' },
     { role: 'District role', body: 'DEO monitors attendance, mid-day meal quality, infrastructure repairs' },
     { role: 'Panchayat role', body: 'School Management Committees monitor school functioning; panchayat union maintains buildings' },
   ],
-  education: [
+  'higher-education': [
     { role: 'State role', body: 'Higher Education Dept funds colleges, approves new courses, sets fee norms' },
     { role: 'District role', body: 'Joint Director of Collegiate Education monitors college standards' },
     { role: 'Local body role', body: 'Colleges often located on land transferred by local bodies; campus roads maintained by ULBs' },
@@ -58,7 +58,7 @@ const DEPT_LOCAL_CONNECTIONS: Record<string, { role: string; body: string }[]> =
     { role: 'District role', body: 'District Social Welfare Officer manages pension disbursement, ICDS monitoring' },
     { role: 'Panchayat role', body: 'ICDS centres function at village level; MGNREGA work distributed through gram panchayat' },
   ],
-  'public-works': [
+  pwd: [
     { role: 'State role', body: 'PWD builds and maintains state highways, government buildings' },
     { role: 'District role', body: 'SE (PWD) oversees district-level road and building works' },
     { role: 'Local body role', body: 'Panchayat union roads and municipal roads handled by respective local bodies, not PWD' },
@@ -68,17 +68,12 @@ const DEPT_LOCAL_CONNECTIONS: Record<string, { role: string; body: string }[]> =
     { role: 'District role', body: 'SP heads district police; DSP sub-divides command' },
     { role: 'Station level', body: 'Police station serves as primary interface; Inspector-in-charge responsible for FIR filing' },
   ],
-  home: [
-    { role: 'State role', body: 'Home Dept oversees police, fire, prison, civil defence' },
-    { role: 'District role', body: 'Collector coordinates law-and-order with SP' },
-    { role: 'Local body role', body: 'Fire stations partially funded by corporations; local bodies enforce unauthorised construction rules' },
-  ],
   'rural-development': [
     { role: 'State role', body: 'Rural Development Dept funds MGNREGS, Amma Unavagam, rural roads' },
     { role: 'District role', body: 'DRDA / Panchayat Raj District Office coordinates implementation' },
     { role: 'Gram panchayat', body: 'Gram Sabha approves works; panchayat president certifies muster rolls' },
   ],
-  'municipal-administration': [
+  municipal: [
     { role: 'State role', body: 'MAUD Dept sets norms for all urban local bodies; approves budgets of corporations' },
     { role: 'Corporation/Municipality', body: 'Primary service delivery body for urban areas — water, waste, roads, certificates' },
     { role: 'Ward level', body: 'Ward councillors oversee local works; ward committee meetings mandatory quarterly' },
@@ -119,7 +114,7 @@ const DEPT_TENDERS: Record<string, TenderRecord[]> = {
     { id: 'h3', title_en: 'Diagnostic equipment — CT scanners (32 govt hospitals)', title_ta: 'நோய் கண்டறியும் உபகரணங்கள்', value_cr: 94, category: 'goods', status: 'open', year: 2025 },
     { id: 'h4', title_en: 'Ambulance fleet renewal — 108 service', title_ta: '108 சேவை ஆம்புலன்ஸ் புதுப்பிப்பு', value_cr: 68, category: 'goods', status: 'awarded', year: 2024, signal: 'Single bidder in 3 of 5 district lots', signal_severity: 'amber' },
   ],
-  'public-works': [
+  pwd: [
     { id: 'pw1', title_en: 'Chennai–Salem 8-lane expressway — Package 3', title_ta: 'சென்னை–சேலம் நெடுஞ்சாலை', value_cr: 2840, category: 'works', status: 'awarded', year: 2023, signal: 'L1 bid 40% below engineer estimate; revision under dispute', signal_severity: 'red' },
     { id: 'pw2', title_en: 'State highway resurfacing — 12 districts', title_ta: 'மாநில நெடுஞ்சாலை மறு அமைப்பு', value_cr: 680, category: 'works', status: 'completed', year: 2024 },
     { id: 'pw3', title_en: 'Government buildings maintenance — Annual contract', title_ta: 'அரசு கட்டடங்கள் பராமரிப்பு', value_cr: 210, category: 'works', status: 'open', year: 2025, signal: 'Previous contractor blacklisted; re-tendered', signal_severity: 'amber' },
@@ -130,7 +125,7 @@ const DEPT_TENDERS: Record<string, TenderRecord[]> = {
     { id: 'rd2', title_en: 'Amma Unavagam infrastructure expansion — 500 units', title_ta: 'அம்மா உணவகம் விரிவாக்கம்', value_cr: 75, category: 'works', status: 'completed', year: 2023 },
     { id: 'rd3', title_en: 'Panchayat office construction — Batch 4', title_ta: 'ஊராட்சி அலுவலக கட்டுமானம்', value_cr: 140, category: 'works', status: 'awarded', year: 2024 },
   ],
-  'municipal-administration': [
+  municipal: [
     { id: 'ma1', title_en: 'Solid waste management — GCC mechanised sweeping', title_ta: 'திட்டக் கழிவு மேலாண்மை', value_cr: 280, category: 'services', status: 'awarded', year: 2024, signal: 'Contract extended thrice without re-tender', signal_severity: 'amber' },
     { id: 'ma2', title_en: 'Underground drainage — Madurai Phase 2', title_ta: 'மதுரை நிலத்தடி வடிகால் திட்டம்', value_cr: 540, category: 'works', status: 'open', year: 2025 },
     { id: 'ma3', title_en: 'Smart street lighting — 6 municipalities', title_ta: 'ஸ்மார்ட் தெரு விளக்குகள்', value_cr: 95, category: 'goods', status: 'awarded', year: 2024 },
@@ -140,7 +135,7 @@ const DEPT_TENDERS: Record<string, TenderRecord[]> = {
     { id: 'ag2', title_en: 'Farm machinery hiring centres — equipment supply', title_ta: 'விவசாய இயந்திர வாடகை மையங்கள்', value_cr: 68, category: 'goods', status: 'awarded', year: 2024 },
     { id: 'ag3', title_en: 'Soil testing laboratory upgrades — 32 districts', title_ta: 'மண் பரிசோதனை ஆய்வகம்', value_cr: 24, category: 'works', status: 'open', year: 2025 },
   ],
-  'school-education': [
+  education: [
     { id: 'se1', title_en: 'Mid-Day Meal — rice and pulses supply 2024–25', title_ta: 'மதிய உணவு திட்டம் — அரிசி வழங்கல்', value_cr: 3200, category: 'goods', status: 'awarded', year: 2024 },
     { id: 'se2', title_en: 'Free uniforms — 98 lakh students', title_ta: 'இலவச சீருடை — 98 லட்சம் மாணவர்கள்', value_cr: 210, category: 'goods', status: 'completed', year: 2024 },
     { id: 'se3', title_en: 'School building construction — 1,200 classrooms', title_ta: 'வகுப்பறை கட்டுமானம்', value_cr: 388, category: 'works', status: 'awarded', year: 2024 },

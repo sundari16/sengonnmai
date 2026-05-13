@@ -5,6 +5,7 @@ import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import DeptCard from '@/components/dept/DeptCard'
 import { DEPARTMENTS, getDeptsByType, formatCr } from '@/lib/departments'
+import DataProvider from '@/lib/data-provider'
 
 const FILTER_TYPES = ['all', 'welfare', 'revenue', 'infrastructure', 'administration'] as const
 type FilterType = typeof FILTER_TYPES[number]
@@ -58,6 +59,8 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
   const filteredDepts = getDeptsByType(activeFilter)
   const totalBudget = DEPARTMENTS.find(d => d.id === 'finance')?.budget_cr ?? 439293
+  const deptCount = DataProvider.getAllDepts().length
+  const schemeCount = DataProvider.getSchemeCounts().total
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -84,7 +87,8 @@ export default function HomePage() {
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {[
                 { label: 'Total Budget', value: formatCr(totalBudget) },
-                { label: 'Departments', value: '12 tracked' },
+                { label: 'Departments', value: `${deptCount} departments` },
+                { label: 'Schemes tracked', value: `${schemeCount} schemes` },
                 { label: 'Data vintage', value: '2024-25' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'var(--bg-2)', borderRadius: '8px', padding: '12px 16px' }}>
