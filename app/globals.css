@@ -24,6 +24,15 @@
   --serif: 'Playfair Display', Georgia, serif;
   --sans: 'Source Sans 3', system-ui, sans-serif;
   --mono: 'Source Code Pro', monospace;
+  /* Funding type colors */
+  --fund-central: #1455A4;
+  --fund-central-bg: #EAF4FF;
+  --fund-css: #5B2D8E;
+  --fund-css-bg: #F5EEFF;
+  --fund-state: #1A5C38;
+  --fund-state-bg: #F2F8F4;
+  --fund-cess: #946010;
+  --fund-cess-bg: #FDF6EC;
 }
 
 * { box-sizing: border-box; }

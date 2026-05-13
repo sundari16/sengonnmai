@@ -3,64 +3,8 @@ import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import SourceCitation from '@/components/ui/SourceCitation'
 import RTITooltip from '@/components/ui/RTITooltip'
-import type { LocalBody, MPFund, MLAFund } from '@/types'
-
-const LOCAL_BODIES_SAMPLE: LocalBody[] = [
-  {
-    id: 'corp-chennai',
-    type: 'corporation',
-    name_en: 'Greater Chennai Corporation',
-    name_ta: 'சென்னை மாநகராட்சி',
-    district: 'Chennai',
-    population: 7088000,
-    budget_cr: 6820,
-    budget_year: '2023-24',
-    key_functions_en: ['Roads & drains', 'Solid waste', 'Birth & death registration', 'Building plans', 'Markets', 'Street lights'],
-    schemes_implemented: ['PM SVANidhi', 'Smart City Mission', 'AMRUT 2.0', 'Tamil Nadu Urban Flagship'],
-    elected_members: 200,
-    permanent_staff: 14200,
-    contract_staff: 3800,
-    website_url: 'https://chennaicorporation.gov.in',
-    source_url: 'https://chennaicorporation.gov.in/gcc/annual-report',
-    data_quality: 'available',
-  },
-  {
-    id: 'corp-coimbatore',
-    type: 'corporation',
-    name_en: 'Coimbatore City Municipal Corporation',
-    name_ta: 'கோயம்புத்தூர் மாநகராட்சி',
-    district: 'Coimbatore',
-    population: 1061000,
-    budget_cr: 1240,
-    budget_year: '2023-24',
-    key_functions_en: ['Roads', 'Water supply', 'Waste management', 'Sanitation', 'Parks'],
-    schemes_implemented: ['AMRUT 2.0', 'Smart City Mission', 'TNUFIP'],
-    elected_members: 100,
-    permanent_staff: 4800,
-    contract_staff: 1200,
-    website_url: 'https://www.ccmc.gov.in',
-    source_url: 'https://www.ccmc.gov.in',
-    data_quality: 'available',
-  },
-  {
-    id: 'corp-madurai',
-    type: 'corporation',
-    name_en: 'Madurai City Municipal Corporation',
-    name_ta: 'மதுரை மாநகராட்சி',
-    district: 'Madurai',
-    population: 1017000,
-    budget_cr: 980,
-    budget_year: '2023-24',
-    key_functions_en: ['Water supply', 'Roads', 'Waste', 'Sanitation', 'Markets'],
-    schemes_implemented: ['AMRUT 2.0', 'TNUFIP'],
-    elected_members: 100,
-    permanent_staff: 3900,
-    contract_staff: 900,
-    website_url: 'https://maduraicorporation.com',
-    source_url: 'https://maduraicorporation.com',
-    data_quality: 'available',
-  },
-]
+import { TN_CORPORATIONS, CORP_SUMMARY } from '@/lib/local-bodies-complete'
+import type { MPFund, MLAFund } from '@/types'
 
 const MP_FUNDS_SAMPLE: MPFund[] = [
   { mp_name: 'Data under RTI', constituency: 'Chennai North', district: 'Chennai', party: '—', allocation_cr: 5, utilised_cr: 3.2, year: '2022-23', projects_sanctioned: 38, projects_completed: 24, projects_pending: 14, source_url: 'https://mplads.gov.in' },
@@ -99,7 +43,7 @@ function UtilisationBar({ allocated, utilised, label }: { allocated: number; uti
 }
 
 export default function LocalGovernmentPage() {
-  const totalCorpBudget = LOCAL_BODIES_SAMPLE.reduce((a, b) => a + (b.budget_cr ?? 0), 0)
+  const totalCorpBudget = CORP_SUMMARY.totalBudgetCr
 
   return (
     <>
@@ -160,48 +104,57 @@ export default function LocalGovernmentPage() {
           The 73rd Amendment similarly covers rural local bodies (Panchayati Raj — Schedule XI, 29 subjects).
         </div>
 
-        {/* Corporation profiles */}
-        <h2 style={{ fontFamily: 'var(--serif)', fontSize: '1.4rem', fontWeight: 700, margin: '0 0 1.25rem', color: 'var(--ink)' }}>Major municipal corporations</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          {LOCAL_BODIES_SAMPLE.map(body => (
-            <div key={body.id} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '1rem 1.125rem' }}>
-              <div style={{ marginBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.15rem', color: 'var(--ink)' }}>{body.name_en}</h3>
-                <p style={{ fontSize: '0.78rem', color: 'var(--ink-3)', margin: 0 }}>{body.name_ta} · {body.district}</p>
+        {/* Corporation profiles — all 21 */}
+        <h2 style={{ fontFamily: 'var(--serif)', fontSize: '1.4rem', fontWeight: 700, margin: '0 0 0.5rem', color: 'var(--ink)' }}>
+          All {CORP_SUMMARY.total} municipal corporations
+        </h2>
+        <p style={{ fontSize: '0.85rem', color: 'var(--ink-3)', margin: '0 0 1.25rem', lineHeight: 1.6 }}>
+          Combined budget ₹{CORP_SUMMARY.totalBudgetCr.toLocaleString('en-IN')} Cr · {CORP_SUMMARY.totalElected.toLocaleString('en-IN')} elected members · ~{CORP_SUMMARY.totalStaff.toLocaleString('en-IN')} staff
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
+          {TN_CORPORATIONS.map(body => (
+            <div key={body.id} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '1rem 1.125rem', background: body.data_quality === 'available' ? 'var(--bg)' : 'var(--bg-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem', gap: '0.5rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '0.88rem', fontWeight: 600, margin: '0 0 0.15rem', color: 'var(--ink)', lineHeight: 1.3 }}>{body.name_en}</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--ink-3)', margin: 0 }}>{body.name_ta} · {body.district}</p>
+                </div>
+                {body.data_quality === 'estimated' && (
+                  <span style={{ fontSize: '0.65rem', background: 'var(--flag-amber-bg)', color: 'var(--flag-amber)', border: '1px solid var(--flag-amber)33', borderRadius: 3, padding: '0.1rem 0.35rem', whiteSpace: 'nowrap', flexShrink: 0 }}>est.</span>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.78rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--ink-3)' }}>Population</span>
-                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>{(body.population / 100000).toFixed(1)}L</span>
+                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>{body.population >= 100000 ? `${(body.population / 100000).toFixed(1)}L` : `${(body.population / 1000).toFixed(0)}K`}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--ink-3)' }}>Budget {body.budget_year}</span>
                   <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--ink)' }}>₹{body.budget_cr?.toLocaleString('en-IN')} Cr</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--ink-3)' }}>Elected members</span>
+                  <span style={{ color: 'var(--ink-3)' }}>Wards / Elected</span>
                   <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>{body.elected_members}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--ink-3)' }}>Permanent staff</span>
-                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>{body.permanent_staff?.toLocaleString('en-IN')}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--ink-3)' }}>Contract staff (approx)</span>
-                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>~{body.contract_staff?.toLocaleString('en-IN')}</span>
+                  <span style={{ color: 'var(--ink-3)' }}>Staff (perm + contract)</span>
+                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink-2)' }}>{((body.permanent_staff ?? 0) + (body.contract_staff ?? 0)).toLocaleString('en-IN')}</span>
                 </div>
               </div>
-              <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                {body.schemes_implemented.map(s => (
-                  <span key={s} style={{ fontSize: '0.68rem', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 3, padding: '0.1rem 0.35rem', color: 'var(--ink-3)' }}>{s}</span>
+              <div style={{ marginTop: '0.6rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                {body.schemes_implemented.slice(0, 3).map(s => (
+                  <span key={s} style={{ fontSize: '0.65rem', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 3, padding: '0.1rem 0.3rem', color: 'var(--ink-3)' }}>{s}</span>
                 ))}
+                {body.schemes_implemented.length > 3 && (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--ink-4)', padding: '0.1rem 0.2rem' }}>+{body.schemes_implemented.length - 3}</span>
+                )}
               </div>
             </div>
           ))}
         </div>
         <p style={{ fontSize: '0.78rem', color: 'var(--ink-4)', margin: '0 0 2.5rem', fontStyle: 'italic' }}>
           Source: Corporation annual reports, TN Municipal Administration directorate, 2023-24 budget documents.
-          21 corporations total; 3 largest shown. RTI path below for full data.
+          Entries marked "est." use estimated figures — RTI path below for audited data.
         </p>
 
         {/* MP LADS funds */}

@@ -45,6 +45,8 @@ export default function Nav() {
           {[
             { href: '/#departments', label: 'Departments' },
             { href: '/budget', label: 'Budget' },
+            { href: '/budget/finance-commission', label: 'Finance Comm' },
+            { href: '/citizen-guide', label: 'Services Guide' },
             { href: '/performance/1947-1991', label: '1947–91' },
             { href: '/performance/1991-present', label: '1991–now' },
             { href: '/org', label: 'Org' },

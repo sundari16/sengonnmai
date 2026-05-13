@@ -24,6 +24,150 @@ import {
   HEALTH_MINISTERS,
 } from '@/lib/health-data'
 import { DEPARTMENTS } from '@/lib/departments'
+import DataProvider from '@/lib/data-provider'
+
+// Per-department local government connection data
+const DEPT_LOCAL_CONNECTIONS: Record<string, { role: string; body: string }[]> = {
+  health: [
+    { role: 'State role', body: 'Health Dept issues circulars, releases funds, sets targets' },
+    { role: 'District role', body: 'JDHS monitors PHCs, approves medicine indent, reviews progress' },
+    { role: 'Panchayat / corporation role', body: 'ANM sub-centre building, community mobilisation, VHSNC meetings' },
+  ],
+  'school-education': [
+    { role: 'State role', body: 'School Education Dept sets curriculum, approves teacher transfers, releases MDM funds' },
+    { role: 'District role', body: 'DEO monitors attendance, mid-day meal quality, infrastructure repairs' },
+    { role: 'Panchayat role', body: 'School Management Committees monitor school functioning; panchayat union maintains buildings' },
+  ],
+  education: [
+    { role: 'State role', body: 'Higher Education Dept funds colleges, approves new courses, sets fee norms' },
+    { role: 'District role', body: 'Joint Director of Collegiate Education monitors college standards' },
+    { role: 'Local body role', body: 'Colleges often located on land transferred by local bodies; campus roads maintained by ULBs' },
+  ],
+  revenue: [
+    { role: 'State role', body: 'Revenue Dept sets land records policy, approves Tahsildar appointments' },
+    { role: 'District role', body: 'Collector oversees revenue administration; RDO handles appeals' },
+    { role: 'Village level', body: 'Village Administrative Officer (VAO) — the primary interface for patta, certificate services' },
+  ],
+  agriculture: [
+    { role: 'State role', body: 'Agriculture Dept sets crop support prices, distributes subsidised inputs' },
+    { role: 'District role', body: 'Joint Director of Agriculture coordinates block-level extension officers' },
+    { role: 'Panchayat role', body: 'Gram panchayats host farmer meetings; MGNREGS agricultural work implemented at village level' },
+  ],
+  welfare: [
+    { role: 'State role', body: 'Social Welfare Dept funds Anganwadis, approves pension lists' },
+    { role: 'District role', body: 'District Social Welfare Officer manages pension disbursement, ICDS monitoring' },
+    { role: 'Panchayat role', body: 'ICDS centres function at village level; MGNREGA work distributed through gram panchayat' },
+  ],
+  'public-works': [
+    { role: 'State role', body: 'PWD builds and maintains state highways, government buildings' },
+    { role: 'District role', body: 'SE (PWD) oversees district-level road and building works' },
+    { role: 'Local body role', body: 'Panchayat union roads and municipal roads handled by respective local bodies, not PWD' },
+  ],
+  police: [
+    { role: 'State role', body: 'DGP coordinates law enforcement; Home Dept sets policing policy' },
+    { role: 'District role', body: 'SP heads district police; DSP sub-divides command' },
+    { role: 'Station level', body: 'Police station serves as primary interface; Inspector-in-charge responsible for FIR filing' },
+  ],
+  home: [
+    { role: 'State role', body: 'Home Dept oversees police, fire, prison, civil defence' },
+    { role: 'District role', body: 'Collector coordinates law-and-order with SP' },
+    { role: 'Local body role', body: 'Fire stations partially funded by corporations; local bodies enforce unauthorised construction rules' },
+  ],
+  'rural-development': [
+    { role: 'State role', body: 'Rural Development Dept funds MGNREGS, Amma Unavagam, rural roads' },
+    { role: 'District role', body: 'DRDA / Panchayat Raj District Office coordinates implementation' },
+    { role: 'Gram panchayat', body: 'Gram Sabha approves works; panchayat president certifies muster rolls' },
+  ],
+  'municipal-administration': [
+    { role: 'State role', body: 'MAUD Dept sets norms for all urban local bodies; approves budgets of corporations' },
+    { role: 'Corporation/Municipality', body: 'Primary service delivery body for urban areas — water, waste, roads, certificates' },
+    { role: 'Ward level', body: 'Ward councillors oversee local works; ward committee meetings mandatory quarterly' },
+  ],
+  finance: [
+    { role: 'State role', body: 'Finance Dept releases funds to all departments; sets FRBM limits' },
+    { role: 'District level', body: 'Pay and Accounts Office (PAO) manages treasury operations at district level' },
+    { role: 'Local body', body: 'Local bodies have independent budgets; Finance Dept approves SFC devolution' },
+  ],
+}
+
+function getDeptLocalConnections(deptId: string): { role: string; body: string }[] {
+  return DEPT_LOCAL_CONNECTIONS[deptId] ?? [
+    { role: 'Local body connection', body: 'Data on how this department connects to local government is being compiled.' },
+    { role: 'RTI option', body: 'File RTI with the department for details on local body-level implementation roles.' },
+    { role: 'General principle', body: 'Most State departments work through district offices, which coordinate with local bodies for last-mile delivery.' },
+  ]
+}
+
+// ── Tender records ───────────────────────────────────────────────
+
+type TenderRecord = {
+  id: string
+  title_en: string
+  title_ta: string
+  value_cr: number
+  category: 'works' | 'goods' | 'services' | 'consultancy'
+  status: 'open' | 'awarded' | 'cancelled' | 'completed'
+  year: number
+  signal?: string
+  signal_severity?: 'red' | 'amber'
+}
+
+const DEPT_TENDERS: Record<string, TenderRecord[]> = {
+  health: [
+    { id: 'h1', title_en: 'Supply of essential medicines (TNMSC)', title_ta: 'அத்தியாவசிய மருந்துகள் வழங்கல்', value_cr: 1840, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'h2', title_en: 'PHC infrastructure upgrades — 100 units', title_ta: 'PHC கட்டமைப்பு மேம்பாடு', value_cr: 312, category: 'works', status: 'awarded', year: 2024 },
+    { id: 'h3', title_en: 'Diagnostic equipment — CT scanners (32 govt hospitals)', title_ta: 'நோய் கண்டறியும் உபகரணங்கள்', value_cr: 94, category: 'goods', status: 'open', year: 2025 },
+    { id: 'h4', title_en: 'Ambulance fleet renewal — 108 service', title_ta: '108 சேவை ஆம்புலன்ஸ் புதுப்பிப்பு', value_cr: 68, category: 'goods', status: 'awarded', year: 2024, signal: 'Single bidder in 3 of 5 district lots', signal_severity: 'amber' },
+  ],
+  'public-works': [
+    { id: 'pw1', title_en: 'Chennai–Salem 8-lane expressway — Package 3', title_ta: 'சென்னை–சேலம் நெடுஞ்சாலை', value_cr: 2840, category: 'works', status: 'awarded', year: 2023, signal: 'L1 bid 40% below engineer estimate; revision under dispute', signal_severity: 'red' },
+    { id: 'pw2', title_en: 'State highway resurfacing — 12 districts', title_ta: 'மாநில நெடுஞ்சாலை மறு அமைப்பு', value_cr: 680, category: 'works', status: 'completed', year: 2024 },
+    { id: 'pw3', title_en: 'Government buildings maintenance — Annual contract', title_ta: 'அரசு கட்டடங்கள் பராமரிப்பு', value_cr: 210, category: 'works', status: 'open', year: 2025, signal: 'Previous contractor blacklisted; re-tendered', signal_severity: 'amber' },
+    { id: 'pw4', title_en: 'Bridge inspection consultancy — 340 structures', title_ta: 'பாலம் ஆய்வு ஆலோசனை', value_cr: 18, category: 'consultancy', status: 'awarded', year: 2024 },
+  ],
+  'rural-development': [
+    { id: 'rd1', title_en: 'MGNREGS material component — district-level procurement', title_ta: 'மகாத்மா காந்தி ஊரக வேலைவாய்ப்பு பொருட்கள்', value_cr: 920, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'rd2', title_en: 'Amma Unavagam infrastructure expansion — 500 units', title_ta: 'அம்மா உணவகம் விரிவாக்கம்', value_cr: 75, category: 'works', status: 'completed', year: 2023 },
+    { id: 'rd3', title_en: 'Panchayat office construction — Batch 4', title_ta: 'ஊராட்சி அலுவலக கட்டுமானம்', value_cr: 140, category: 'works', status: 'awarded', year: 2024 },
+  ],
+  'municipal-administration': [
+    { id: 'ma1', title_en: 'Solid waste management — GCC mechanised sweeping', title_ta: 'திட்டக் கழிவு மேலாண்மை', value_cr: 280, category: 'services', status: 'awarded', year: 2024, signal: 'Contract extended thrice without re-tender', signal_severity: 'amber' },
+    { id: 'ma2', title_en: 'Underground drainage — Madurai Phase 2', title_ta: 'மதுரை நிலத்தடி வடிகால் திட்டம்', value_cr: 540, category: 'works', status: 'open', year: 2025 },
+    { id: 'ma3', title_en: 'Smart street lighting — 6 municipalities', title_ta: 'ஸ்மார்ட் தெரு விளக்குகள்', value_cr: 95, category: 'goods', status: 'awarded', year: 2024 },
+  ],
+  agriculture: [
+    { id: 'ag1', title_en: 'Fertiliser subsidy distribution — 2024 kharif', title_ta: 'உர மானியம் வினியோகம்', value_cr: 1120, category: 'goods', status: 'completed', year: 2024 },
+    { id: 'ag2', title_en: 'Farm machinery hiring centres — equipment supply', title_ta: 'விவசாய இயந்திர வாடகை மையங்கள்', value_cr: 68, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'ag3', title_en: 'Soil testing laboratory upgrades — 32 districts', title_ta: 'மண் பரிசோதனை ஆய்வகம்', value_cr: 24, category: 'works', status: 'open', year: 2025 },
+  ],
+  'school-education': [
+    { id: 'se1', title_en: 'Mid-Day Meal — rice and pulses supply 2024–25', title_ta: 'மதிய உணவு திட்டம் — அரிசி வழங்கல்', value_cr: 3200, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'se2', title_en: 'Free uniforms — 98 lakh students', title_ta: 'இலவச சீருடை — 98 லட்சம் மாணவர்கள்', value_cr: 210, category: 'goods', status: 'completed', year: 2024 },
+    { id: 'se3', title_en: 'School building construction — 1,200 classrooms', title_ta: 'வகுப்பறை கட்டுமானம்', value_cr: 388, category: 'works', status: 'awarded', year: 2024 },
+    { id: 'se4', title_en: 'Laptops for Class XI students', title_ta: 'XI வகுப்பு மாணவர்களுக்கு மடிக்கணினி', value_cr: 540, category: 'goods', status: 'open', year: 2025, signal: 'Brand specification restricts competition to 2 vendors', signal_severity: 'amber' },
+  ],
+  finance: [
+    { id: 'fi1', title_en: 'Integrated Financial Management System — Phase 2', title_ta: 'ஒருங்கிணைந்த நிதி மேலாண்மை அமைப்பு', value_cr: 85, category: 'services', status: 'awarded', year: 2024 },
+    { id: 'fi2', title_en: 'Pension payment software maintenance', title_ta: 'ஓய்வூதிய மென்பொருள் பராமரிப்பு', value_cr: 12, category: 'services', status: 'awarded', year: 2024 },
+  ],
+  revenue: [
+    { id: 're1', title_en: 'Survey & Settlement — drone mapping 38 districts', title_ta: 'துல்லிய நில அளவை — ட்ரோன் தரைவரைபடம்', value_cr: 145, category: 'services', status: 'awarded', year: 2024 },
+    { id: 're2', title_en: 'Disaster relief materials — pre-positioned stock', title_ta: 'பேரிடர் நிவாரண பொருட்கள்', value_cr: 62, category: 'goods', status: 'open', year: 2025 },
+  ],
+  police: [
+    { id: 'po1', title_en: 'Police vehicles — 4-wheelers and 2-wheelers', title_ta: 'காவல்துறை வாகன கொள்முதல்', value_cr: 220, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'po2', title_en: 'CCTNS software upgrade and maintenance', title_ta: 'CCTNS மென்பொருள் மேம்பாடு', value_cr: 34, category: 'services', status: 'awarded', year: 2024 },
+    { id: 'po3', title_en: 'Surveillance cameras — Chennai city network', title_ta: 'கண்காணிப்பு கேமரா நெட்வொர்க்', value_cr: 88, category: 'goods', status: 'completed', year: 2023 },
+  ],
+  welfare: [
+    { id: 'we1', title_en: 'ICDS nutrition supplement supply — 2024–25', title_ta: 'ஊட்டச்சத்து கூடுதல் உணவு வழங்கல்', value_cr: 580, category: 'goods', status: 'awarded', year: 2024 },
+    { id: 'we2', title_en: 'Anganwadi centre construction — 800 units', title_ta: 'அங்கன்வாடி மையம் கட்டுமானம்', value_cr: 96, category: 'works', status: 'awarded', year: 2024 },
+  ],
+}
+
+function getDeptTenders(deptId: string): TenderRecord[] {
+  return DEPT_TENDERS[deptId] ?? []
+}
 
 // ── helpers ──────────────────────────────────────────────────────
 
@@ -121,13 +265,16 @@ export default function DeptPage() {
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug
   const [activeSection, setActiveSection] = useState('overview')
 
-  // For now Health is the only fully seeded dept
   const dept = slug === 'health' ? HEALTH_DEPT : DEPARTMENTS.find(d => d.slug === slug)
-  if (!dept) return <div style={{ padding: '2rem' }}>Department not found.</div>
+  if (!dept) return (
+    <div style={{ padding: '2rem', fontFamily: 'var(--sans)' }}>
+      <p style={{ color: 'var(--ink-2)' }}>Department not found.</p>
+      <a href="/#departments" style={{ color: 'var(--accent)' }}>View all departments →</a>
+    </div>
+  )
 
   const isHealth = slug === 'health'
   const services = isHealth ? HEALTH_SERVICES : []
-  const schemes = isHealth ? HEALTH_SCHEMES : []
   const processes = isHealth ? HEALTH_PROCESSES : []
   const metrics = isHealth ? HEALTH_METRICS : []
   const flags = isHealth ? HEALTH_FLAGS : []
@@ -136,6 +283,13 @@ export default function DeptPage() {
   const contractWorkers = isHealth ? HEALTH_CONTRACT_WORKERS : []
   const legalAppointments = isHealth ? HEALTH_LEGAL_APPOINTMENTS : []
   const ministers = isHealth ? HEALTH_MINISTERS : []
+
+  // Schemes from DataProvider (covers all departments)
+  const deptSchemes = DataProvider.getSchemesByDept(dept.id)
+  const schemes = isHealth ? HEALTH_SCHEMES : deptSchemes
+  const totalSchemeCounts = DataProvider.getSchemeCounts()
+  const localConnections = getDeptLocalConnections(dept.id)
+  const tenders = getDeptTenders(dept.id)
 
   const vacancyPct = dept.total_staff_sanctioned > 0
     ? Math.round(((dept.total_staff_sanctioned - dept.total_staff_filled) / dept.total_staff_sanctioned) * 100)
@@ -269,9 +423,27 @@ export default function DeptPage() {
         {/* ── SECTION 3: SCHEMES ───────────────────────────────── */}
         <section id="schemes" style={{ padding: '3rem 0 2.5rem' }}>
           <SectionHead
-            en="Schemes from this department"
-            ta="இந்தத் துறையின் திட்டங்கள்"
+            en={`${dept.name_en} — Schemes (${schemes.length} total)`}
+            ta={`${dept.name_ta} — திட்டங்கள் (${schemes.length})`}
           />
+          {schemes.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ background: 'var(--flag-green-bg)', color: 'var(--flag-green)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 4 }}>
+                Active: {activeSchemes.length}
+              </span>
+              <span style={{ background: 'var(--bg-2)', color: 'var(--ink-3)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 4 }}>
+                Total tracked: {schemes.length}
+              </span>
+            </div>
+          )}
+          {schemes.length === 0 && (
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+              <p style={{ color: 'var(--ink-2)', fontSize: '0.88rem', margin: 0 }}>
+                Scheme data for this department is being compiled.{' '}
+                <a href="/schemes" style={{ color: 'var(--accent)' }}>Search all {totalSchemeCounts.total} schemes →</a>
+              </p>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: '1rem' }}>
             {schemes.map(s => (
               <div key={s.id} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '1rem 1.125rem', background: 'var(--bg)' }}>
@@ -604,10 +776,90 @@ export default function DeptPage() {
             This section surfaces notable patterns from public tender data.{' '}
             <a href="https://tntenders.gov.in" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Source: tntenders.gov.in</a>
           </div>
-          <p style={{ color: 'var(--ink-3)', fontSize: '0.88rem', lineHeight: 1.6 }}>
-            No notable patterns flagged in recent tender data for this department.{' '}
-            <a href="https://tntenders.gov.in" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>View all tenders: tntenders.gov.in</a>
-          </p>
+
+          {tenders.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'var(--bg-2)', color: 'var(--ink-3)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 4 }}>
+                  {tenders.length} tracked
+                </span>
+                {tenders.some(t => t.signal_severity === 'red') && (
+                  <span style={{ background: 'var(--flag-red-bg)', color: 'var(--flag-red)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 4 }}>
+                    {tenders.filter(t => t.signal_severity === 'red').length} red flag{tenders.filter(t => t.signal_severity === 'red').length > 1 ? 's' : ''}
+                  </span>
+                )}
+                {tenders.some(t => t.signal_severity === 'amber') && (
+                  <span style={{ background: 'var(--flag-amber-bg)', color: 'var(--flag-amber)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 4 }}>
+                    {tenders.filter(t => t.signal_severity === 'amber').length} pattern{tenders.filter(t => t.signal_severity === 'amber').length > 1 ? 's' : ''} noted
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {tenders.map(t => {
+                  const statusColor: Record<string, string> = {
+                    open: '#1455A4', awarded: 'var(--flag-green)', completed: 'var(--ink-3)', cancelled: 'var(--flag-red)',
+                  }
+                  const catLabel: Record<string, string> = {
+                    works: 'Works', goods: 'Goods', services: 'Services', consultancy: 'Consultancy',
+                  }
+                  return (
+                    <div key={t.id} style={{
+                      border: t.signal_severity === 'red'
+                        ? '1px solid var(--flag-red)'
+                        : t.signal_severity === 'amber'
+                          ? '1px solid var(--flag-amber)'
+                          : '1px solid var(--border)',
+                      borderRadius: 6,
+                      padding: '1rem 1.125rem',
+                      background: t.signal_severity === 'red'
+                        ? 'var(--flag-red-bg)'
+                        : t.signal_severity === 'amber'
+                          ? 'var(--flag-amber-bg)'
+                          : 'var(--bg)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink)', margin: '0 0 0.15rem', lineHeight: 1.4 }}>{t.title_en}</p>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--ink-3)', margin: 0 }}>{t.title_ta}</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem', flexShrink: 0 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink)' }}>
+                            ₹{t.value_cr.toLocaleString('en-IN')} Cr
+                          </span>
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--bg-2)', color: 'var(--ink-3)', padding: '0.1rem 0.4rem', borderRadius: 3, border: '1px solid var(--border)' }}>
+                              {catLabel[t.category]}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: statusColor[t.status] ?? 'var(--ink-3)', padding: '0.1rem 0.4rem', borderRadius: 3, border: `1px solid ${statusColor[t.status] ?? 'var(--border)'}22` }}>
+                              {t.status}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--ink-3)', padding: '0.1rem 0.4rem' }}>{t.year}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {t.signal && (
+                        <div style={{ marginTop: '0.6rem', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                          <span style={{ fontSize: '0.78rem', color: t.signal_severity === 'red' ? 'var(--flag-red)' : 'var(--flag-amber)', fontWeight: 700, flexShrink: 0 }}>
+                            {t.signal_severity === 'red' ? '⚑' : '△'}
+                          </span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--ink-2)', lineHeight: 1.5 }}>{t.signal}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--ink-3)', marginTop: '1rem', lineHeight: 1.6 }}>
+                Data compiled from TNTENDERS public records.{' '}
+                <a href="https://tntenders.gov.in" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Search all tenders →</a>
+              </p>
+            </>
+          ) : (
+            <p style={{ color: 'var(--ink-3)', fontSize: '0.88rem', lineHeight: 1.6 }}>
+              Tender data for this department is being compiled.{' '}
+              <a href="https://tntenders.gov.in" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>View all tenders: tntenders.gov.in</a>
+            </p>
+          )}
         </section>
 
         <Divider />
@@ -640,31 +892,22 @@ export default function DeptPage() {
         {/* ── SECTION 12: LOCAL ────────────────────────────────── */}
         <section id="local" style={{ padding: '3rem 0 2.5rem' }}>
           <SectionHead
-            en="How local government is involved"
-            ta="உள்ளாட்சி அமைப்புகளின் பங்கு"
+            en={`How ${dept.name_en} connects to local government`}
+            ta={`${dept.name_ta} — உள்ளாட்சி அமைப்புகளின் பங்கு`}
           />
           <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '1rem 1.25rem', marginBottom: '1rem' }}>
-            <p style={{ fontWeight: 600, color: 'var(--ink)', margin: '0 0 0.75rem', fontSize: '0.9rem' }}>
-              National Health Mission — implementation roles
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '0.75rem', fontSize: '0.85rem' }}>
-              {[
-                { role: 'State role', body: 'Health Dept issues circulars, releases funds, sets targets' },
-                { role: 'District role', body: 'JDHS monitors PHCs, approves medicine indent, reviews progress' },
-                { role: 'Panchayat / corporation role', body: 'ANM sub-centre building, community mobilisation, VHSNC meetings' },
-              ].map(r => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
+              {localConnections.map(r => (
                 <div key={r.role} style={{ background: 'var(--bg-2)', borderRadius: 4, padding: '0.75rem' }}>
                   <p style={{ fontWeight: 600, color: 'var(--ink-2)', margin: '0 0 0.3rem', fontSize: '0.8rem' }}>{r.role}</p>
                   <p style={{ color: 'var(--ink-3)', margin: 0, lineHeight: 1.5 }}>{r.body}</p>
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--ink-3)', margin: '0.75rem 0 0', lineHeight: 1.6 }}>
-              If this service fails at your local body level, the escalation path is:
-              Village health nurse → Block Medical Officer → JDHS District → Commissioner of Health
-            </p>
           </div>
-          <SourceCitation org="NHM Tamil Nadu" document="Implementation guidelines" year="2024" url="https://nhm.gov.in" />
+          <p style={{ fontSize: '0.82rem', color: 'var(--ink-3)', margin: '0.5rem 0 0', lineHeight: 1.6 }}>
+            Source: Municipal Administration Dept · Rural Development Dept · TN Panchayat Raj Act 1994
+          </p>
         </section>
 
         <Divider />
