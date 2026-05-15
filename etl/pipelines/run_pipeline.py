@@ -50,12 +50,10 @@ SOURCES = {
              "?lang=1&level=3&sublinkid=1043&lid=418",
      "type": "webpage"},
   ],
-  "cag": [
-    {"name": "CAG Audit Reports TN",
-     "url":  "https://cag.gov.in/en/audit-report"
-             "?state=Tamil+Nadu&report_type=&year=",
-     "type": "webpage"},
-  ],
+  # CAG: listing page is JS-rendered; state filter is client-side only.
+  # PDFs found in HTML are national reports, not TN-specific.
+  # Keeping empty until TN-specific PDF URLs are identified manually.
+  "cag": [],
 }
 
 PROMPTS = {
