@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300          // 5 min — Pro plan
@@ -241,13 +240,13 @@ function isMeaningful(item: unknown): boolean {
   })
 }
 
-// ── Supabase save ─────────────────────────────────────────────────────────────
+// ── Supabase save (raw REST — bypasses JS client header encoding issues) ──────
 
-function sbClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+function sbEnv(key: string): string {
+  // Strip ALL BOM characters (U+FEFF) anywhere in the string — they can
+  // appear mid-value when copied from certain editors or terminal emulators
+  // and cause a Fetch ByteString error if they land in an HTTP header.
+  return (process.env[key] ?? '').replace(/﻿/g, '').trim()
 }
 
 async function saveQueue(
@@ -256,23 +255,50 @@ async function saveQueue(
   sourceType: string,
   log: string[],
 ): Promise<number> {
-  const sb = sbClient()
+  const supabaseUrl = sbEnv('NEXT_PUBLIC_SUPABASE_URL')
+  const serviceKey  = sbEnv('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!supabaseUrl || !serviceKey) {
+    log.push('  Supabase error: env vars missing')
+    return 0
+  }
+
+  const endpoint = `${supabaseUrl}/rest/v1/admin_queue`
   let saved = 0
+
   for (const item of items) {
     if (!isMeaningful(item)) continue
-    const { error } = await sb.from('admin_queue').insert({
+
+    // Serialise and scrub any stray BOM from the body too
+    const bodyStr = JSON.stringify({
       source_type:   sourceType,
       pipeline_name: sourceName,
       data:          item,
       confidence:    0.82,
       status:        'pending_review',
       created_at:    new Date().toISOString(),
-    })
-    if (error) {
-      log.push(`  Supabase error: ${error.message} (code ${error.code})`)
-      console.log(`  Supabase error: ${error.message}`)
-    } else {
-      saved++
+    }).replace(/﻿/g, '')
+
+    try {
+      const r = await fetch(endpoint, {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey':        serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Prefer':        'return=minimal',
+        },
+        body: bodyStr,
+        signal: AbortSignal.timeout(10_000),
+      })
+      if (r.ok) {
+        saved++
+      } else {
+        const msg = await r.text().catch(() => '(no body)')
+        log.push(`  Supabase error: HTTP ${r.status} — ${msg.slice(0, 120)}`)
+      }
+    } catch (e) {
+      log.push(`  Supabase error: ${e}`)
     }
   }
   return saved
