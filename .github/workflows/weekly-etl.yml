@@ -43,5 +43,12 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python etl/pipelines/run_pipeline.py --source schemes
 
+      - name: Run CAG pipeline
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python etl/pipelines/run_pipeline.py --source cag
+
       - name: Done
         run: echo "Pipeline complete. Review at /admin"

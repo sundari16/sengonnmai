@@ -17,39 +17,40 @@ HEADERS = {
   "Accept": "application/json, text/html, */*",
 }
 
-# ssl_verify=False bypasses broken cert chains on *.gov.in in CI
+# All sources verified reachable from international runners (etl/test_sources.py)
 SOURCES = {
   "budget": [
-    {"name": "TN Budget Highlights 2024-25",
-     "url":  "https://tnbudget.tn.gov.in/tnweb_files/"
-             "budget%20highlights/HIGHLIGHTS%20ENG%202024_25.pdf",
-     "type": "pdf", "ssl_verify": False},
-    {"name": "TN Budget Speech 2024-25",
-     "url":  "https://tnbudget.tn.gov.in/tnweb_files/"
-             "budget%20speech/BUDGET%20SPEECH%202024_25_ENG.pdf",
-     "type": "pdf", "ssl_verify": False},
+    {"name": "PRS India TN Budget Analysis 2024-25",
+     "url":  "https://prsindia.org/budgets/states/"
+             "tamil-nadu-budget-analysis-2024-25",
+     "type": "webpage"},
   ],
   "gazette": [
-    # egazette is more stable than tngazette; ssl_verify=False for .gov.in
-    {"name": "eGazette TN — latest",
-     "url":  "https://egazette.tn.gov.in/",
-     "type": "webpage", "ssl_verify": False},
-    {"name": "TN Gazette (backup)",
-     "url":  "https://www.tngazette.gov.in/",
-     "type": "webpage", "ssl_verify": False},
+    {"name": "India Code TN Acts",
+     "url":  "https://www.indiacode.nic.in/handle/"
+             "123456789/1362",
+     "type": "webpage"},
   ],
   "schemes": [
-    # myScheme API returns structured JSON — far more useful than the React SPA
-    {"name": "myScheme API — TN batch 1",
-     "url":  "https://api.myscheme.gov.in/search/v4/schemes"
-             "?lang=en&q=&sort=&from=0&size=30"
-             "&filterby=state%3ATamil%2BNadu",
-     "type": "api"},
-    {"name": "myScheme API — TN batch 2",
-     "url":  "https://api.myscheme.gov.in/search/v4/schemes"
-             "?lang=en&q=&sort=&from=30&size=30"
-             "&filterby=state%3ATamil%2BNadu",
-     "type": "api"},
+    {"name": "myScheme.gov.in TN webpage",
+     "url":  "https://www.myscheme.gov.in/search"
+             "?keyword=&state=Tamil+Nadu",
+     "type": "webpage"},
+    {"name": "DBT Bharat TN Schemes",
+     "url":  "https://dbtbharat.gov.in/scheme/"
+             "schemelistbystate?id=33",
+     "type": "webpage"},
+    {"name": "data.gov.in TN Datasets",
+     "url":  "https://data.gov.in/catalogs"
+             "?filters[field_catalog_reference_state]"
+             "[]=Tamil+Nadu&sort_by=changed&sort_order=DESC",
+     "type": "webpage"},
+  ],
+  "cag": [
+    {"name": "CAG Reports TN",
+     "url":  "https://cag.gov.in/en/audit-report"
+             "?state=Tamil+Nadu&report_type=&year=",
+     "type": "webpage"},
   ],
 }
 
@@ -78,6 +79,12 @@ PROMPTS = {
     '"status":"active|discontinued","eligibility":"","brief":""}]\n'
     "Only include schemes with non-empty scheme_name. Text:\n"
   ),
+  "cag": (
+    "Extract audit findings from this CAG (Comptroller and Auditor General) "
+    "report on Tamil Nadu. Return ONLY a JSON array:\n"
+    '[{"report_title":"","department":"","financial_year":"","finding":"","amount_cr":0}]\n'
+    "Only include entries with a non-empty finding. Numbers in crore rupees. Text:\n"
+  ),
 }
 
 
@@ -104,12 +111,25 @@ def fetch_pdf(url, ssl_verify=True):
   except Exception as e:
     return f"ERROR:{e}"
 
-def fetch_page(url, ssl_verify=True):
-  try:
-    r = requests.get(url, headers=HEADERS, timeout=25, verify=ssl_verify)
-    return r.text[:10000] if r.ok else f"HTTP_{r.status_code}"
-  except Exception as e:
-    return f"ERROR:{e}"
+def fetch_page(url, ssl_verify=False, retries=2):
+  import time
+  r = None
+  for attempt in range(retries + 1):
+    try:
+      r = requests.get(url, headers=HEADERS, timeout=25, verify=ssl_verify)
+      if r.ok and len(r.text) > 500:
+        return r.text[:10000]
+      if attempt < retries:
+        print(f"  Retry {attempt+1}: got {len(r.text)} chars")
+        time.sleep(3)
+    except Exception as e:
+      if attempt < retries:
+        time.sleep(3)
+      else:
+        return f"ERROR:{e}"
+  if r is not None:
+    return f"HTTP_{r.status_code}"
+  return "ERROR:unknown"
 
 def fetch_api(url):
   """Fetch a JSON API — returns the raw text for Groq, or parsed items directly."""
@@ -225,6 +245,10 @@ def save_queue(items, source_name, source_type, sb):
 
 def run(source_type):
   print(f"\n=== {source_type.upper()} pipeline ===")
+  print(f"Python version: {sys.version}")
+  print(f"Groq model: {GROQ_MODEL}")
+  print(f"Supabase URL configured: {bool(SUPABASE_URL)}")
+  print(f"Sources for {source_type}: {len(SOURCES.get(source_type, []))}")
   sb    = make_supabase_client()
   total = 0
 
@@ -271,9 +295,9 @@ def run(source_type):
 if __name__ == "__main__":
   p = argparse.ArgumentParser()
   p.add_argument("--source",
-    choices=["budget", "gazette", "schemes", "all"], default="all")
+    choices=["budget", "gazette", "schemes", "cag", "all"], default="all")
   args = p.parse_args()
-  sources = (["budget", "gazette", "schemes"]
+  sources = (["budget", "gazette", "schemes", "cag"]
     if args.source == "all" else [args.source])
   for s in sources:
     run(s)
