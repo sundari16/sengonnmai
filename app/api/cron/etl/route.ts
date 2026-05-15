@@ -1,3 +1,8 @@
+// Weekly cron paused.
+// Vercel Hobby plan does not honour preferredRegion.
+// Manual trigger still works via authenticated GET.
+// Resume by adding back to crons array in vercel.json.
+
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'

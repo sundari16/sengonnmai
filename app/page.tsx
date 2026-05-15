@@ -244,6 +244,10 @@ export default function HomePage() {
             Sources: tnbudget.tn.gov.in · cag.gov.in · prsindia.org · tnassembly.gov.in · nhm.gov.in · rchiips.org/nfhs
             <br />All data from official TN government records. Every claim citable. Dispute any claim.
           </div>
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1rem', textAlign: 'center' }}>
+            Data sources verified May 2025 · Refresh schedule: manual · Contribute data via /contribute
+            <br />தரவு மூலங்கள் மே 2025-ல் சரிபார்க்கப்பட்டது
+          </div>
         </div>
       </footer>
     </div>
