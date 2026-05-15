@@ -1,9 +1,8 @@
-import argparse, requests, json, os, sys, tempfile, warnings
+import argparse, requests, json, os, sys, tempfile, warnings, re
 from datetime import datetime
 from groq import Groq
 from supabase import create_client
 
-# Suppress SSL warnings for .gov.in sites with broken cert chains
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -13,7 +12,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 GROQ_MODEL   = "llama-3.3-70b-versatile"
 
 HEADERS = {
-  "User-Agent": "Sengonnmai-ETL/1.0 (Tamil Nadu Public Accounts)",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   "Accept": "application/json, text/html, */*",
 }
 
@@ -24,30 +23,30 @@ SOURCES = {
      "url":  "https://prsindia.org/budgets/states/"
              "tamil-nadu-budget-analysis-2024-25",
      "type": "webpage"},
+    {"name": "RBI DBIE State Finances",
+     "url":  "https://dbie.rbi.org.in/DBIE/dbie.rbi?site=statistics",
+     "type": "webpage"},
   ],
   "gazette": [
     {"name": "India Code TN Acts",
-     "url":  "https://www.indiacode.nic.in/handle/"
-             "123456789/1362",
+     "url":  "https://www.indiacode.nic.in/handle/123456789/1362",
      "type": "webpage"},
   ],
   "schemes": [
-    {"name": "myScheme.gov.in TN webpage",
-     "url":  "https://www.myscheme.gov.in/search"
-             "?keyword=&state=Tamil+Nadu",
+    {"name": "myScheme.gov.in TN",
+     "url":  "https://www.myscheme.gov.in/search?keyword=&state=Tamil+Nadu",
      "type": "webpage"},
     {"name": "DBT Bharat TN Schemes",
-     "url":  "https://dbtbharat.gov.in/scheme/"
-             "schemelistbystate?id=33",
+     "url":  "https://dbtbharat.gov.in",
      "type": "webpage"},
     {"name": "data.gov.in TN Datasets",
      "url":  "https://data.gov.in/catalogs"
-             "?filters[field_catalog_reference_state]"
-             "[]=Tamil+Nadu&sort_by=changed&sort_order=DESC",
+             "?filters[field_catalog_reference_state][]=Tamil+Nadu"
+             "&sort_by=changed&sort_order=DESC",
      "type": "webpage"},
   ],
   "cag": [
-    {"name": "CAG Reports TN",
+    {"name": "CAG Audit Reports TN",
      "url":  "https://cag.gov.in/en/audit-report"
              "?state=Tamil+Nadu&report_type=&year=",
      "type": "webpage"},
@@ -56,41 +55,54 @@ SOURCES = {
 
 PROMPTS = {
   "budget": (
-    "Extract ALL department budget figures from this Tamil Nadu budget document. "
-    "Return ONLY a JSON array, no commentary:\n"
+    "Extract ALL department budget figures from this Tamil Nadu budget text. "
+    "Return ONLY a JSON array:\n"
     '[{"dept_name":"","budget_estimate_cr":0,'
     '"revised_estimate_cr":0,"actual_expenditure_cr":0,'
     '"financial_year":"2024-25"}]\n'
-    "All numbers must be numeric (crore rupees). Text:\n"
+    "All monetary values must be numeric (crore rupees). "
+    "If revised or actual are unavailable use 0. Text:\n"
   ),
   "gazette": (
-    "Extract officer transfers and new scheme Government Orders from this Tamil Nadu Gazette text. "
-    "Return ONLY JSON:\n"
-    '{"transfers":[{"officer_name":"","from_post":"","to_post":"",'
-    '"department":"","go_number":"","date":""}],'
-    '"new_schemes":[{"scheme_name":"","department":"",'
-    '"go_number":"","date":"","brief":""}]}\n'
-    "Text:\n"
+    "Extract legislation titles and descriptions from this India Code / Gazette text. "
+    "Return ONLY a JSON array:\n"
+    '[{"act_title":"","act_number":"","year":"","department":"","brief":""}]\n'
+    "Only include entries with a non-empty act_title. Text:\n"
   ),
   "schemes": (
-    "Extract Tamil Nadu government scheme details. "
+    "Extract Tamil Nadu government scheme details from this text. "
     "Return ONLY a JSON array:\n"
     '[{"scheme_name":"","department":"","funding_type":"central|state|css",'
     '"status":"active|discontinued","eligibility":"","brief":""}]\n'
     "Only include schemes with non-empty scheme_name. Text:\n"
   ),
   "cag": (
-    "Extract audit findings from this CAG (Comptroller and Auditor General) "
-    "report on Tamil Nadu. Return ONLY a JSON array:\n"
-    '[{"report_title":"","department":"","financial_year":"","finding":"","amount_cr":0}]\n'
-    "Only include entries with a non-empty finding. Numbers in crore rupees. Text:\n"
+    "Extract CAG audit report titles and findings for Tamil Nadu. "
+    "Return ONLY a JSON array:\n"
+    '[{"report_title":"","department":"","financial_year":"",'
+    '"finding":"","amount_cr":0,"finding_type":"irregularity|shortage|excess|other"}]\n'
+    "Only include entries with a non-empty finding. "
+    "Use neutral factual language. Numbers in crore rupees (0 if unknown). Text:\n"
   ),
 }
 
 
-# ── Fetchers ─────────────────────────────────────────────────────────────────
+# ── HTML stripping ────────────────────────────────────────────────────────────
 
-def fetch_pdf(url, ssl_verify=True):
+def strip_html(html):
+  """Remove tags, collapse whitespace, return plain text up to 12000 chars."""
+  text = re.sub(r'<script[^>]*>.*?</script>', ' ', html, flags=re.S | re.I)
+  text = re.sub(r'<style[^>]*>.*?</style>',  ' ', text,  flags=re.S | re.I)
+  text = re.sub(r'<[^>]+>', ' ', text)
+  text = re.sub(r'&nbsp;', ' ', text)
+  text = re.sub(r'&[a-z]+;', ' ', text)
+  text = re.sub(r'\s+', ' ', text).strip()
+  return text[:12000]
+
+
+# ── Fetchers ──────────────────────────────────────────────────────────────────
+
+def fetch_pdf(url, ssl_verify=False):
   try:
     import pdfplumber
     r = requests.get(url, headers=HEADERS, timeout=40, verify=ssl_verify)
@@ -118,9 +130,10 @@ def fetch_page(url, ssl_verify=False, retries=2):
     try:
       r = requests.get(url, headers=HEADERS, timeout=25, verify=ssl_verify)
       if r.ok and len(r.text) > 500:
-        return r.text[:10000]
+        plain = strip_html(r.text)
+        return plain
       if attempt < retries:
-        print(f"  Retry {attempt+1}: got {len(r.text)} chars")
+        print(f"  Retry {attempt+1}: got {len(r.text) if r else 0} chars")
         time.sleep(3)
     except Exception as e:
       if attempt < retries:
@@ -131,41 +144,24 @@ def fetch_page(url, ssl_verify=False, retries=2):
     return f"HTTP_{r.status_code}"
   return "ERROR:unknown"
 
-def fetch_api(url):
-  """Fetch a JSON API — returns the raw text for Groq, or parsed items directly."""
+def fetch_json_api(url, ssl_verify=False):
+  """Fetch a structured JSON API; returns (records_list, raw_text_fallback)."""
   try:
-    r = requests.get(url, headers=HEADERS, timeout=25)
+    r = requests.get(url, headers=HEADERS, timeout=20, verify=ssl_verify)
     if not r.ok:
-      return f"HTTP_{r.status_code}", []
+      return [], f"HTTP_{r.status_code}"
     data = r.json()
-    # myScheme API structure: data.hits.hits[*]._source
-    hits = (data.get("data", {})
-               .get("hits", {})
-               .get("hits", []))
+    # data.gov.in format
+    records = data.get("records") or data.get("result", {}).get("records", [])
+    if records:
+      return records[:30], None
+    # myScheme hits format
+    hits = data.get("data", {}).get("hits", {}).get("hits", [])
     if hits:
-      items = []
-      for h in hits:
-        src = h.get("_source", {})
-        name = src.get("schemeName") or src.get("scheme_name") or ""
-        if not name:
-          continue
-        items.append({
-          "scheme_name":  name,
-          "department":   src.get("ministry") or src.get("department") or "",
-          "funding_type": (
-            "central" if src.get("level") == "Central" else
-            "state"   if src.get("level") == "State"   else "css"
-          ),
-          "status":       "active" if src.get("isActive") != False else "discontinued",
-          "eligibility":  (src.get("eligibility") or "")[:300],
-          "brief":        (src.get("shortDescription") or src.get("description") or "")[:300],
-        })
-      print(f"  API parsed {len(hits)} hits → {len(items)} named schemes")
-      return None, items   # None = skip Groq, items already parsed
-    # fallback: send raw JSON text to Groq
-    return json.dumps(data)[:10000], []
+      return [h.get("_source", {}) for h in hits], None
+    return [], json.dumps(data)[:8000]
   except Exception as e:
-    return f"ERROR:{e}", []
+    return [], f"ERROR:{e}"
 
 
 # ── Extraction via Groq ───────────────────────────────────────────────────────
@@ -176,18 +172,54 @@ def extract(text, source_type):
     return []
   client = Groq(api_key=GROQ_API_KEY)
   prompt = PROMPTS.get(source_type, PROMPTS["budget"])
+  raw = ""
   try:
     resp = client.chat.completions.create(
       model=GROQ_MODEL,
-      messages=[{"role": "user", "content": prompt + str(text)[:8000]}],
-      temperature=0.1,
+      messages=[
+        {"role": "system", "content": (
+          "You are a data extraction assistant. "
+          "Return ONLY valid JSON. No explanation. No markdown. "
+          "No code blocks. Start your response with [ or { directly."
+        )},
+        {"role": "user", "content": prompt + str(text)[:8000]},
+      ],
+      temperature=0.0,
       max_tokens=4000,
     )
-    raw   = resp.choices[0].message.content
-    start = raw.find("[") if "[" in raw else raw.find("{")
-    end   = (raw.rfind("]") + 1 if "[" in raw else raw.rfind("}") + 1)
-    if start >= 0 and end > start:
-      return json.loads(raw[start:end])
+    raw = resp.choices[0].message.content.strip()
+
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+      raw = raw.split("```")[1]
+      if raw.startswith("json"):
+        raw = raw[4:]
+      raw = raw.strip()
+
+    # Trim to outermost JSON structure
+    if raw.startswith("["):
+      raw = raw[:raw.rfind("]") + 1]
+    elif raw.startswith("{"):
+      raw = raw[:raw.rfind("}") + 1]
+
+    parsed = json.loads(raw)
+
+    if isinstance(parsed, list):
+      return parsed
+    if isinstance(parsed, dict):
+      # Flatten dict of lists (gazette returns {transfers:[...], new_schemes:[...]})
+      items = []
+      for v in parsed.values():
+        if isinstance(v, list):
+          items.extend(v)
+        elif isinstance(v, dict):
+          items.append(v)
+      return items
+    return [parsed]
+
+  except json.JSONDecodeError as e:
+    print(f"  JSON parse error: {e}")
+    print(f"  Raw preview: {raw[:200]}")
     return []
   except Exception as e:
     print(f"  Groq error: {e}")
@@ -197,7 +229,6 @@ def extract(text, source_type):
 # ── Filter ────────────────────────────────────────────────────────────────────
 
 def is_meaningful(item):
-  """Skip items where every value is empty string/None."""
   if not isinstance(item, dict):
     return True
   values = [v for v in item.values() if isinstance(v, str)]
@@ -253,27 +284,25 @@ def run(source_type):
   total = 0
 
   for s in SOURCES.get(source_type, []):
-    verify = s.get("ssl_verify", True)
-    print(f"Fetching: {s['name']}" + ("" if verify else " [ssl_verify=off]"))
+    print(f"Fetching: {s['name']}")
 
-    if s["type"] == "api":
-      text, direct_items = fetch_api(s["url"])
-      if direct_items:
-        # Already structured — no Groq needed
-        items = direct_items
-        print(f"  Extracted {len(items)} items (direct parse)")
+    if s["type"] == "json_api":
+      records, fallback = fetch_json_api(s["url"])
+      if records:
+        print(f"  API returned {len(records)} records directly")
+        items = records
       else:
-        print(f"  Got {len(str(text))} chars — sending to Groq")
-        items = extract(text, source_type)
+        print(f"  Got {len(str(fallback))} chars — sending to Groq")
+        items = extract(fallback, source_type)
         print(f"  Extracted {len(items)} items (Groq)")
     elif s["type"] == "pdf":
-      text = fetch_pdf(s["url"], ssl_verify=verify)
+      text = fetch_pdf(s["url"])
       print(f"  Got {len(str(text))} chars")
       items = extract(text, source_type)
       print(f"  Extracted {len(items)} items")
     else:
-      text = fetch_page(s["url"], ssl_verify=verify)
-      print(f"  Got {len(str(text))} chars")
+      text = fetch_page(s["url"])
+      print(f"  Got {len(str(text))} chars (stripped HTML)")
       items = extract(text, source_type)
       print(f"  Extracted {len(items)} items")
 
