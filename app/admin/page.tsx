@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Nav from '@/components/ui/Nav'
 import Topbar from '@/components/ui/Topbar'
 import { DEPARTMENTS } from '@/lib/departments'
@@ -9,7 +9,18 @@ import { TN_TIMELINE } from '@/lib/timeline-data'
 import type { Department } from '@/types'
 import type { Scheme } from '@/types'
 
-type Tab = 'overview' | 'departments' | 'schemes' | 'entities'
+type Tab = 'overview' | 'departments' | 'schemes' | 'entities' | 'queue'
+
+interface QueueItem {
+  id: string
+  source_type: string
+  pipeline_name: string
+  data: Record<string, unknown>
+  confidence: number
+  status: string
+  created_at: string
+  reviewer_notes: string | null
+}
 
 const QUALITY_COLOR: Record<string, string> = {
   available:     '#1A5C38',
@@ -37,6 +48,40 @@ function StatBox({ label, value, sub }: { label: string; value: string | number;
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('overview')
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [queueLoading, setQueueLoading] = useState(false)
+  const [queueError, setQueueError] = useState<string | null>(null)
+  const [actioning, setActioning] = useState<string | null>(null)
+
+  const loadQueue = useCallback(async () => {
+    setQueueLoading(true)
+    setQueueError(null)
+    try {
+      const res = await fetch('/api/admin/queue')
+      const json = await res.json()
+      if (json.error) throw new Error(json.error)
+      setQueue(json.items ?? [])
+    } catch (e: unknown) {
+      setQueueError(String(e))
+    } finally {
+      setQueueLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'queue') loadQueue()
+  }, [tab, loadQueue])
+
+  async function action(id: string, status: 'approved' | 'rejected') {
+    setActioning(id)
+    await fetch('/api/admin/queue', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    })
+    setActioning(null)
+    loadQueue()
+  }
 
   const deptRedFlags   = DEPARTMENTS.reduce((s: number, d: Department) => s + d.flag_count_red, 0)
   const deptAmberFlags = DEPARTMENTS.reduce((s: number, d: Department) => s + d.flag_count_amber, 0)
@@ -50,8 +95,14 @@ export default function AdminPage() {
   const entityLowQuality = TN_ENTITIES.filter(e => e.data_quality === 'not_available')
   const entityProfitable = TN_ENTITIES.filter(e => e.annual_profit_loss_cr > 0)
 
+  const qPending  = queue.filter(q => q.status === 'pending_review')
+  const qApproved = queue.filter(q => q.status === 'approved')
+  const qRejected = queue.filter(q => q.status === 'rejected')
+  const lastRun   = queue[0]?.created_at
+
   const TABS: { id: Tab; label: string }[] = [
     { id: 'overview',    label: 'Overview' },
+    { id: 'queue',       label: `Pipeline Queue${qPending.length ? ` (${qPending.length})` : ''}` },
     { id: 'departments', label: `Departments (${DEPARTMENTS.length})` },
     { id: 'schemes',     label: `Schemes (${ALL_SCHEMES.length})` },
     { id: 'entities',    label: `Entities (${TN_ENTITIES.length})` },
@@ -132,6 +183,73 @@ export default function AdminPage() {
                 <li>Reservation: update if 16th FC changes devolution or new court orders</li>
               </ul>
             </div>
+          </>
+        )}
+
+        {/* Pipeline Queue tab */}
+        {tab === 'queue' && (
+          <>
+            {/* Summary row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: '0.6rem', marginBottom: '1.5rem' }}>
+              <StatBox label="Pipeline last run" value={lastRun ? new Date(lastRun).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} sub={lastRun ? new Date(lastRun).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' UTC' : 'no runs yet'} />
+              <StatBox label="Pending review" value={queueLoading ? '…' : qPending.length} sub="awaiting decision" />
+              <StatBox label="Approved" value={queueLoading ? '…' : qApproved.length} sub="ready to publish" />
+              <StatBox label="Rejected" value={queueLoading ? '…' : qRejected.length} sub="excluded" />
+            </div>
+
+            {queueError && (
+              <div style={{ background: '#FEE', border: '1px solid #B83232', borderRadius: 6, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#B83232', fontSize: '0.83rem' }}>
+                Error loading queue: {queueError}
+              </div>
+            )}
+
+            {queueLoading && <p style={{ color: 'var(--ink-3)', fontSize: '0.85rem' }}>Loading queue…</p>}
+
+            {!queueLoading && qPending.length === 0 && !queueError && (
+              <p style={{ color: 'var(--ink-3)', fontSize: '0.85rem' }}>No items pending review.</p>
+            )}
+
+            {/* Pending items grouped by source_type */}
+            {(['budget', 'cag', 'gazette', 'schemes'] as const).map(stype => {
+              const items = qPending.filter(q => q.source_type === stype)
+              if (!items.length) return null
+              return (
+                <div key={stype} style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ fontFamily: 'var(--serif)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.6rem', color: 'var(--ink)', textTransform: 'capitalize' }}>
+                    {stype} <span style={{ color: 'var(--ink-3)', fontWeight: 400, fontSize: '0.85rem' }}>({items.length} items)</span>
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {items.map(item => (
+                      <div key={item.id} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '0.75rem 1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: '0 0 0.2rem', fontSize: '0.72rem', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{item.pipeline_name}</p>
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--ink)', wordBreak: 'break-word' }}>
+                            {JSON.stringify(item.data).slice(0, 160)}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'flex-end', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.72rem', fontFamily: 'var(--mono)', color: item.confidence >= 0.8 ? '#1A5C38' : '#946010', fontWeight: 700 }}>
+                            {(item.confidence * 100).toFixed(0)}%
+                          </span>
+                          <button
+                            disabled={actioning === item.id}
+                            onClick={() => action(item.id, 'approved')}
+                            style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', cursor: 'pointer', background: '#1A5C38', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600 }}>
+                            Approve
+                          </button>
+                          <button
+                            disabled={actioning === item.id}
+                            onClick={() => action(item.id, 'rejected')}
+                            style={{ padding: '0.25rem 0.65rem', fontSize: '0.75rem', cursor: 'pointer', background: '#B83232', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600 }}>
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </>
         )}
 

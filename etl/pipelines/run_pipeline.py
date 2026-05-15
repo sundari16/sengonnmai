@@ -44,6 +44,11 @@ SOURCES = {
              "?filters[field_catalog_reference_state][]=Tamil+Nadu"
              "&sort_by=changed&sort_order=DESC",
      "type": "webpage"},
+    # NHM verified working: 29k chars, text-heavy page (tested 2026-05-15)
+    {"name": "NHM Tamil Nadu Key Indicators",
+     "url":  "https://nhm.gov.in/index1.php"
+             "?lang=1&level=3&sublinkid=1043&lid=418",
+     "type": "webpage"},
   ],
   "cag": [
     {"name": "CAG Audit Reports TN",
@@ -169,6 +174,9 @@ def fetch_json_api(url, ssl_verify=False):
 def extract(text, source_type):
   if not text or str(text).startswith(("HTTP_", "ERROR:")):
     print(f"  Skipping — fetch failed: {text}")
+    return []
+  if len(str(text).strip()) < 500:
+    print(f"  SKIP: insufficient content ({len(str(text).strip())} chars) — skipping Groq to prevent hallucination")
     return []
   client = Groq(api_key=GROQ_API_KEY)
   prompt = PROMPTS.get(source_type, PROMPTS["budget"])
