@@ -27,7 +27,7 @@ AI_PROVIDER = os.environ.get("AI_PROVIDER", "anthropic").lower()
 
 MODELS = {
     "anthropic": "claude-sonnet-4-6",
-    "groq": "llama-3.1-70b-versatile",
+    "groq": "llama-3.3-70b-versatile",
     "ollama": "llama3.1",
 }
 
