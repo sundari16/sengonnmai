@@ -12,7 +12,7 @@ export type SchemeType = 'central' | 'state' | 'centrally_sponsored'
 
 export type SchemeStatus = 'active' | 'renamed' | 'shelved' | 'extended' | 'new'
 
-export type DataQuality = 'available' | 'estimated' | 'not_available' | 'rti_needed'
+export type DataQuality = 'available' | 'estimated' | 'not_available' | 'rti_needed' | 'verified'
 
 export type CadreType =
   | 'IAS'
@@ -64,6 +64,8 @@ export type Department = {
   website_url?: string
   pio_designation_en?: string
   pio_designation_ta?: string
+  budget_data_quality?: DataQuality
+  budget_source_note?: string
 }
 
 // ── ORG LEVEL ────────────────────────────────────────────────────

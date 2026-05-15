@@ -49,7 +49,7 @@ export const ALL_SCHEMES: Scheme[] = [
     eligibility_en: 'BPL families and those earning below ₹72,000 per year. Annual health cover of ₹5 lakh per family for 1,027 procedures.',
     eligibility_ta: 'BPL குடும்பங்கள் மற்றும் ஆண்டு வருமானம் ₹72,000-க்கு கீழ் உள்ளவர்கள். 1,027 சிகிச்சைகளுக்கு ₹5 லட்சம் வரை.',
     how_to_apply_en: 'Register at nearest government hospital with Aadhaar, income certificate, and ration card. No premium payment required.',
-    source_url: 'https://www.cmchistn.com',
+    source_url: 'https://cmchistn.com',
   },
   {
     id: 'pmjay',
@@ -99,7 +99,7 @@ export const ALL_SCHEMES: Scheme[] = [
     eligibility_en: 'Girls studying in government and government-aided schools. ₹1,000 per month from Class 6 to 12. Extended from govt-only to include aided schools in 2023.',
     eligibility_ta: 'அரசு மற்றும் அரசு உதவி பெறும் பள்ளிகளில் படிக்கும் மாணவிகள். 6 முதல் 12-ம் வகுப்பு வரை மாதம் ₹1,000.',
     how_to_apply_en: 'Apply through school principal. Benefits credited directly to student bank account.',
-    source_url: 'https://www.tnschools.gov.in',
+    source_url: 'https://pudumaipenn.tn.gov.in',
     parent_scheme_en: 'Same scheme — extended to aided schools in 2023',
   },
   {
@@ -629,7 +629,7 @@ export const ALL_SCHEMES: Scheme[] = [
     eligibility_en: 'All adult members of rural households who want unskilled manual work. 100 days of guaranteed employment at ₹281/day (TN 2024 wage).',
     eligibility_ta: 'கிராமப்புற குடும்பங்களின் அனைத்து வயது வந்த உறுப்பினர்கள். 100 நாள் வேலை உத்தரவாதம். ₹281/நாள் (TN 2024).',
     how_to_apply_en: 'Apply at Gram Panchayat for Job Card. Within 15 days of applying, employment must be provided or unemployment allowance paid.',
-    source_url: 'https://nregs.tn.gov.in',
+    source_url: 'https://nrega.nic.in',
   },
   {
     id: 'jjm',
@@ -1292,7 +1292,7 @@ export const ALL_SCHEMES: Scheme[] = [
     eligibility_en: 'Women studying in government arts and science colleges — ₹1,000/month for UG, ₹1,500/month for PG. Encourages women from govt school background to pursue higher education.',
     eligibility_ta: 'அரசு கலை அறிவியல் கல்லூரிகளில் படிக்கும் பெண்கள் — UG-க்கு மாதம் ₹1,000, PG-க்கு மாதம் ₹1,500.',
     how_to_apply_en: 'Apply through college. Must have studied in government/aided school until Class 12.',
-    source_url: 'https://www.tnhigheredu.tn.gov.in',
+    source_url: 'https://pudumaipenn.tn.gov.in',
   },
   {
     id: 'naan-mudhalvan',

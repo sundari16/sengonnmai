@@ -10,6 +10,7 @@ import RTITooltip from '@/components/ui/RTITooltip'
 import DecisionPowers from '@/components/ui/DecisionPowers'
 import MinisterTimeline from '@/components/dept/MinisterTimeline'
 import ContractWorkerNotice from '@/components/ui/ContractWorkerNotice'
+import DataQualityBadge, { BadgeQuality } from '@/components/ui/DataQualityBadge'
 import {
   HEALTH_DEPT,
   HEALTH_SERVICES,
@@ -184,11 +185,14 @@ function SectionHead({ en, ta }: { en: string; ta: string }) {
   )
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatCard({ label, value, sub, quality }: { label: string; value: string; sub?: string; quality?: BadgeQuality }) {
   return (
     <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '1rem 1.25rem', border: '1px solid var(--border)' }}>
       <div style={{ fontSize: '0.75rem', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{value}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{value}</div>
+        {quality && <DataQualityBadge quality={quality} />}
+      </div>
       {sub && <div style={{ fontSize: '0.8rem', color: 'var(--ink-3)', marginTop: 2 }}>{sub}</div>}
     </div>
   )
@@ -360,8 +364,8 @@ export default function DeptPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '0.75rem', marginBottom: '2rem' }}>
             <StatCard label="Citizens served" value={dept.citizens_served_en} />
             <StatCard label="Active schemes" value={String(activeSchemes.length)} />
-            <StatCard label="Total staff" value={`${(dept.total_staff_filled / 1000).toFixed(0)}K / ${(dept.total_staff_sanctioned / 1000).toFixed(0)}K`} sub={`${vacancyPct}% posts vacant`} />
-            <StatCard label="Budget 2024–25" value={formatCr(dept.budget_cr)} />
+            <StatCard label="Total staff" value={`${(dept.total_staff_filled / 1000).toFixed(0)}K / ${(dept.total_staff_sanctioned / 1000).toFixed(0)}K`} sub={`${vacancyPct}% posts vacant`} quality="estimated" />
+            <StatCard label="Budget 2024–25" value={formatCr(dept.budget_cr)} quality={dept.budget_data_quality ?? 'estimated'} />
           </div>
 
           <p style={{ color: 'var(--ink-2)', fontSize: '0.9rem', lineHeight: 1.7, margin: '0 0 1rem' }}>
@@ -476,8 +480,9 @@ export default function DeptPage() {
                 </p>
 
                 {s.beneficiaries_claimed && (
-                  <p style={{ fontSize: '0.8rem', color: 'var(--ink-3)', margin: '0.2rem 0 0' }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--ink-3)', margin: '0.2rem 0 0', display: 'flex', alignItems: 'center', gap: 5 }}>
                     Claimed beneficiaries: {s.beneficiaries_claimed}
+                    <DataQualityBadge quality="estimated" />
                   </p>
                 )}
               </div>
@@ -543,11 +548,11 @@ export default function DeptPage() {
           />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <StatCard label="Total budget" value={formatCr(dept.budget_cr)} />
-            <StatCard label="Revenue receipts" value={formatCr(dept.revenue_cr)} />
-            <StatCard label="Central funding" value={`${dept.central_funding_pct}%`} />
-            <StatCard label="State funding" value={`${dept.state_funding_pct}%`} />
-            <StatCard label="Per citizen / year" value={`₹${Number(perCitizenCr).toLocaleString('en-IN')}`} />
+            <StatCard label="Total budget" value={formatCr(dept.budget_cr)} quality={dept.budget_data_quality ?? 'estimated'} />
+            <StatCard label="Revenue receipts" value={formatCr(dept.revenue_cr)} quality="estimated" />
+            <StatCard label="Central funding" value={`${dept.central_funding_pct}%`} quality="estimated" />
+            <StatCard label="State funding" value={`${dept.state_funding_pct}%`} quality="estimated" />
+            <StatCard label="Per citizen / year" value={`₹${Number(perCitizenCr).toLocaleString('en-IN')}`} quality="estimated" />
           </div>
 
           {/* Funding split bar */}
@@ -618,8 +623,9 @@ export default function DeptPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '0.3rem 1rem', fontSize: '0.82rem', color: 'var(--ink-3)', marginBottom: '0.5rem' }}>
                       <span>Pay: ₹{level.pay_min.toLocaleString('en-IN')} – ₹{level.pay_max.toLocaleString('en-IN')}/mo</span>
                       <span>Recruited by: {level.recruitment_body}</span>
-                      <span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         Posts: {level.filled_posts.toLocaleString('en-IN')} filled / {level.sanctioned_posts.toLocaleString('en-IN')} sanctioned
+                        <DataQualityBadge quality={level.data_quality_staffing} />
                         {vacPct > 15 && <span style={{ color: 'var(--flag-amber)', fontWeight: 600 }}> · {vacPct}% vacant</span>}
                       </span>
                       <span>Typical tenure: {level.typical_tenure_months} months</span>
@@ -745,7 +751,9 @@ export default function DeptPage() {
                     <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{m.official_target}</p>
                   </div>
                   <div style={{ background: needsRTI ? 'var(--flag-amber-bg)' : 'var(--bg-2)', borderRadius: 4, padding: '0.6rem 0.875rem' }}>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--ink-3)', margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Actual</p>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--ink-3)', margin: '0 0 0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Actual {m.data_quality && <DataQualityBadge quality={m.data_quality} showLabel={false} />}
+                    </p>
                     <p style={{ fontSize: '0.9rem', fontWeight: 600, color: needsRTI ? 'var(--flag-amber)' : 'var(--ink)', margin: 0 }}>{m.actual_value}</p>
                   </div>
                 </div>
