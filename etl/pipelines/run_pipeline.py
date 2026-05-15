@@ -147,12 +147,25 @@ def save_queue(items, source_name,
       print(f"  Supabase error: {e}")
   return saved
 
+def make_supabase_client():
+  if not GROQ_API_KEY:
+    print("ERROR: GROQ_API_KEY not set")
+    sys.exit(1)
+  if not SUPABASE_URL or not SUPABASE_URL.startswith("http"):
+    print("WARNING: SUPABASE_URL not configured — extraction will run but items won't be saved")
+    return None
+  if not SUPABASE_KEY or len(SUPABASE_KEY) < 20:
+    print("WARNING: SUPABASE_SERVICE_ROLE_KEY not configured — extraction will run but items won't be saved")
+    return None
+  try:
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+  except Exception as e:
+    print(f"WARNING: Supabase connection failed ({e}) — extraction will run but items won't be saved")
+    return None
+
 def run(source_type):
   print(f"\n=== {source_type.upper()} pipeline ===")
-  if not all([GROQ_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    print("ERROR: Missing env vars")
-    sys.exit(1)
-  sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+  sb = make_supabase_client()
   total = 0
   for s in SOURCES.get(source_type, []):
     print(f"Fetching: {s['name']}")
@@ -162,10 +175,14 @@ def run(source_type):
     print(f"  Got {len(str(text))} chars")
     items = extract(text, source_type)
     print(f"  Extracted {len(items)} items")
-    saved = save_queue(items, s["name"],
-      source_type, sb)
-    print(f"  Saved {saved} to admin queue")
-    total += saved
+    if sb is None:
+      print(f"  Supabase not configured — skipping save")
+      if items:
+        print(f"  Preview: {json.dumps(items[:2], ensure_ascii=False)[:300]}")
+    else:
+      saved = save_queue(items, s["name"], source_type, sb)
+      print(f"  Saved {saved} to admin queue")
+      total += saved
   print(f"Total saved: {total}")
 
 if __name__ == "__main__":
