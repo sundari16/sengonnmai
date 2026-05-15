@@ -97,13 +97,29 @@ const PROMPTS: Record<string, string> = {
 
 // ── HTML stripping ────────────────────────────────────────────────────────────
 
+function stripBom(s: string): string {
+  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s
+}
+
 function stripHtml(html: string): string {
-  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+  let text = stripBom(html)
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
   text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
   text = text.replace(/<[^>]+>/g, ' ')
   text = text.replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, ' ')
   text = text.replace(/\s+/g, ' ').trim()
   return text.slice(0, 12000)
+}
+
+function stripBomFromItem(item: unknown): unknown {
+  if (typeof item === 'string') return stripBom(item)
+  if (Array.isArray(item)) return item.map(stripBomFromItem)
+  if (item && typeof item === 'object') {
+    return Object.fromEntries(
+      Object.entries(item as Record<string, unknown>).map(([k, v]) => [k, stripBomFromItem(v)])
+    )
+  }
+  return item
 }
 
 // ── Fetchers ──────────────────────────────────────────────────────────────────
@@ -238,6 +254,7 @@ async function saveQueue(
   items: unknown[],
   sourceName: string,
   sourceType: string,
+  log: string[],
 ): Promise<number> {
   const sb = sbClient()
   let saved = 0
@@ -251,8 +268,12 @@ async function saveQueue(
       status:        'pending_review',
       created_at:    new Date().toISOString(),
     })
-    if (error) console.log(`  Supabase error: ${error.message}`)
-    else saved++
+    if (error) {
+      log.push(`  Supabase error: ${error.message} (code ${error.code})`)
+      console.log(`  Supabase error: ${error.message}`)
+    } else {
+      saved++
+    }
   }
   return saved
 }
@@ -269,7 +290,7 @@ async function runPipeline(
   for (const source of sources) {
     log.push(`Fetching: ${source.name}`)
 
-    let text: string
+    let text = ''
     let directItems: unknown[] = []
 
     if (source.type === 'json_api') {
@@ -281,21 +302,31 @@ async function runPipeline(
         text = fallback
         log.push(`  Got ${text.length} chars (fallback)`)
       }
+    } else if (source.type === 'pdf') {
+      // No PDF parser available in Edge-compatible Node runtime — skip and note
+      log.push(`  SKIP: PDF source requires pdfplumber (Python pipeline only)`)
+      text = ''
     } else {
       text = await fetchPage(source.url)
       log.push(`  Got ${text.length} chars`)
     }
 
-    const items = directItems.length > 0
-      ? directItems
-      : await extract(text!, sourceType)
+    let items: unknown[]
+    if (directItems.length > 0) {
+      items = directItems
+    } else if (!text || text.startsWith('HTTP_') || text.startsWith('ERROR:') || text.startsWith('SHORT_') || text === '') {
+      log.push(`  Skip extract: ${text ? text.slice(0, 80) : 'empty'}`)
+      items = []
+    } else {
+      items = await extract(text, sourceType)
+    }
 
     log.push(`  Extracted: ${items.length}`)
 
-    const meaningful = items.filter(isMeaningful)
+    const meaningful = items.filter(isMeaningful).map(stripBomFromItem)
     log.push(`  Meaningful: ${meaningful.length}`)
 
-    const n = await saveQueue(meaningful, source.name, sourceType)
+    const n = await saveQueue(meaningful, source.name, sourceType, log)
     log.push(`  Saved: ${n}`)
     saved += n
   }
@@ -333,5 +364,6 @@ export async function GET(req: NextRequest) {
   }
 
   const totalSaved = Object.values(results).reduce((s, r) => s + r.saved, 0)
-  return NextResponse.json({ ok: true, totalSaved, results })
+  const region = process.env.VERCEL_REGION ?? 'unknown'
+  return NextResponse.json({ ok: true, region, totalSaved, results })
 }
