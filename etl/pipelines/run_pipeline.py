@@ -234,11 +234,13 @@ def extract(text, source_type):
 
 # ── Filter ────────────────────────────────────────────────────────────────────
 
+PLACEHOLDERS = {'active|discontinued', 'central|state|css', 'irregularity|shortage|excess|other'}
+
 def is_meaningful(item):
   if not isinstance(item, dict):
     return True
   values = [v for v in item.values() if isinstance(v, str)]
-  return any(v.strip() for v in values)
+  return any(v.strip() and v.strip() not in PLACEHOLDERS for v in values)
 
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
